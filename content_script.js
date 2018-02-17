@@ -36,9 +36,9 @@ setBody(20);
 // // function myFunction() {
 //     // browser.tabs.create({url: "https://developer.mozilla.org"});
 // 
-     var myWindow = window.open("");
+//    var myWindow = window.open("");
 //     //window.confirm("Are you sure?");
-     myWindow.close();
+//    myWindow.close();
 // };
 //  
 // myFunction();

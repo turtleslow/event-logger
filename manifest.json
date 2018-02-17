@@ -1,20 +1,23 @@
 {
+    "manifest_version": 2
+    , "name": "myext"
+    , "version": "1.0"
+    , "description": "playing with stuff"
 
-  "manifest_version": 2,
-  "name": "myext",
-  "version": "1.0",
-
-  "description": "playing with stuff",
-
-  "icons": {
-    "48": "icons/border-48.png"
-  },
-
-  "content_scripts": [
-    {
-      "matches": ["*://*.example.com/*"],
-      "js": ["myext.js"]
+    , "icons": {
+        "48": "icons/border-48.png"
     }
-  ]
-
+    , "permissions": [
+        "*://developer.mozilla.org/*"
+        , "tabs"
+    ]
+    , "background": {
+        "scripts": ["background_script.js"]
+    }
+    , "content_scripts": [
+        {
+            "matches": ["*://*.example.com/*"]
+            , "js": ["content_script.js"]
+        }
+    ]
 }
