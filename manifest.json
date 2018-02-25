@@ -3,6 +3,11 @@
     , "name": "event-logger"
     , "version": "0.1"
     , "description": "log events while browsing"
+    , "applications": {
+        "gecko": {
+           "id": "event-logger@example.com"
+        }
+    }
 
     , "icons": {
         "48": "icons/border-48.png"
