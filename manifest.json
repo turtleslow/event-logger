@@ -13,6 +13,7 @@
         "48": "icons/border-48.png"
     }
     , "permissions": [
+        "downloads"
     ]
     , "background": {
         "scripts": ["background_script.js"]

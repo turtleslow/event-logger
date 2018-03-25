@@ -1,12 +1,12 @@
 
-var port_log;
+var PORT_LOG;
 
 function connected(port) {
     if (port.name == "log"){
-        port_log = port;
+        PORT_LOG = port;
     } else if (port.name == "content"){
         port.onMessage.addListener(function(m) {
-            port_log.postMessage(m);
+            PORT_LOG.postMessage(m);
         });
     } else {
         console.log("there is something wrong here");
@@ -23,8 +23,6 @@ function closeTab(tab) {
     // setTimeout(()=>{ browser.tabs.remove(tab.id); }, 30000);
 }
 
-var newTab = browser.tabs.create({url: "/output.html"});
+var NEW_TAB = browser.tabs.create({url: browser.extension.getURL("") + "output.html"});
 newTab.then(closeTab,onError);
-
-
 
