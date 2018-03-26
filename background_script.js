@@ -15,14 +15,8 @@ function connected(port) {
 
 browser.runtime.onConnect.addListener(connected);
 
-function onError(tab){
-    // nothing here yet
-}
+// open options.html
+var optionsPage = browser.runtime.openOptionsPage();
 
-function closeTab(tab) {
-    // setTimeout(()=>{ browser.tabs.remove(tab.id); }, 30000);
-}
-
-var NEW_TAB = browser.tabs.create({url: browser.extension.getURL("") + "output.html"});
-newTab.then(closeTab,onError);
-
+// var NEW_TAB = browser.tabs.create({url: browser.extension.getURL("") + "logger.html"});
+// newTab.then(function(){},function(){});

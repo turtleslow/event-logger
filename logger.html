@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Event Logger</title>
+    </head>
+    <body>
+        <h1>Sites</h1>
+        <p id="p_form_sites"></p>
+        <form action = "">
+            <select id = "form_sites" multiple = "multiple" size = "10" style="width: 500px"> </select>
+        </form> <br/>
+        <form action = "">
+            <select id = "form_events" multiple = "multiple" size = "10" style="width: 500px"> </select>
+        </form> <br/>
+        <button id="button_sites" value="optional & unused">Use Selection</button>
+        <p id="form_sites_out"></p>
+
+        <h1>Event Logger</h1>
+        <p id="events_header"></p>
+        <button id="button_savelog" value="optional & unused">Save log</button>
+        <button id="button_displaylog" value="optional & unused">Show / hide log</button>
+        <p id="savelog_notice"></p>
+        <p id="events" style="display: none"></p>
+    </body>
+
+    <script type="text/javascript" src="logger.js"></script>
+</html>
