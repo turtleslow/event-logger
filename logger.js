@@ -3,30 +3,56 @@
 // http://jsbin.com/bonuta/22/edit?html,js,output
 // https://www.w3schools.com/howto/howto_js_filter_lists.asp
 
-/////////////////////////////////////////
-// Globals
-/////////////////////////////////////////
+/***************************
+ * Globals
+ ***************************/
+"use strict";
 
-var START_TIME  = new Date();
-var PORT        = browser.runtime.connect({name:"log"});
-var EVENTS      = new Array();
-var SITES       = ["youtube.com","accuradio.com","slacker.com","pandora.com","jango.com","8tracks.com"];
-var LISTENERS   = ["visibilitychange.visibilityState","resize"];
+let   START_TIME        = new Date();
+const PORT              = browser.runtime.connect({name:"log"});
+const EVENTS            = new Array();
+const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
+const METHODS           = (()=>{
+    const a = ['action_setToForeground', 'log_event_visibilitychange_visibilityState'];
+    for (const evt of EVENT_TARGETS){
+        a.push('action_stop_' + evt);
+        a.push('log_event_' + evt);
+    }
+    const s = new Set(a.sort());
+    return s;
+})();
+const SITES             = new Set(["<all_urls>","*://*.youtube.com/*","*://*.accuradio.com/*","*://*.slacker.com/*","*://*.pandora.com/*","*://*.jango.com/*","*://*.8tracks.com/*"]);
+const METHODS_ACTIVE    = new Set(METHODS);
+const SITES_ACTIVE      = (()=>{const s = new Set(SITES); s.delete("<all_urls>"); return s;})()
 
+/***************************
+ * Listeners
+ ***************************/
 
-/////////////////////////////////////////
-// Listeners
-/////////////////////////////////////////
-
-PORT.onMessage.addListener((m)=>{
-    EVENTS.push(m);
-    updateEventsHeader();
-    document.getElementById("events").innerHTML += new Date().toISOString() + ": " + JSON.stringify(m) + "<br/>";
+PORT.onMessage.addListener((msg)=>{
+    if( msg.msgType == 'eventNotification' ){
+        const m = JSON.parse(msg.body);
+        EVENTS.push(m);
+        updateEventsHeader();
+        document.getElementById("events").innerHTML += new Date().toISOString() + ": " + JSON.stringify(m,null,2) + "<br/>";
+    } else {
+        console.error('unexpected msgType');
+    }
 });
 
-document.getElementById("button_savelog").addEventListener("click", ()=>{
-    console.log("click button_savelog");
-    saveLogToFile();
+document.getElementById("button_addSite").addEventListener("click", ()=>{
+    console.log("click button_addSite");
+    const newSite = document.getElementById("textBox_addSite").value;
+    SITES.add(newSite);
+    initForm(SITES,'form_sites');
+    formatForm(SITES_ACTIVE,'form_sites');
+});
+
+document.getElementById("button_rmSite").addEventListener("click", ()=>{
+    console.log("click button_rmSite");
+    rmSelected('form_sites',[SITES,SITES_ACTIVE]);
+    initForm(SITES,'form_sites');
+    formatForm(SITES_ACTIVE,'form_sites');
 });
 
 document.getElementById("button_displaylog").addEventListener("click", ()=>{
@@ -34,31 +60,80 @@ document.getElementById("button_displaylog").addEventListener("click", ()=>{
     toggleDisplayLog();
 });
 
+document.getElementById("button_copylog").addEventListener("click", ()=>{
+    console.log("click button_copylog");
+    copyLogToClipboard();
+});
+
+document.getElementById("button_savelog").addEventListener("click", ()=>{
+    console.log("click button_savelog");
+    saveLogToFile();
+});
+
+document.getElementById("button_clearlog").addEventListener("click", ()=>{
+    console.log("click button_clearlog");
+    clearArray(EVENTS);
+    START_TIME = new Date();
+    updateEventsHeader();
+    document.getElementById("events").innerHTML = "";
+});
+
 document.getElementById("button_sites").addEventListener("click", ()=>{
+    getSetFromSelectedForm(SITES_ACTIVE,'form_sites');
+    getSetFromSelectedForm(METHODS_ACTIVE,'form_events');
+    formatForm(SITES_ACTIVE,'form_sites');
+    formatForm(METHODS_ACTIVE,'form_events');
+    sendSitesAndMethods(SITES_ACTIVE,METHODS_ACTIVE);
     console.log("click button_sites");
     showSelected("click button_sites");
 });
 
 document.getElementById("form_sites").addEventListener("input", ()=>{
-    console.log("click form_sites");
-    showSelected("click form_sites");
+    console.log("input form_sites");
+    showSelected("input form_sites");
 });
 
 
-/////////////////////////////////////////
-// Functions
-/////////////////////////////////////////
+/***************************
+ * Functions
+ ***************************/
 
 function updateEventsHeader(){
     document.getElementById("events_header").innerHTML = EVENTS.length + " events since " + START_TIME.toISOString();
 }
 
+function getSetFromSelectedForm(set,form_name){
+    set.clear();
+    for(const option of document.getElementById(form_name)){
+        if (option.selected){
+            set.add(option.value);
+        }
+    }
+}
+
+function rmSelected(form_name,sets){
+    for(let option of document.getElementById(form_name)){
+        if (option.selected){
+            for(const s of sets){
+                s.delete(option.value);
+            }
+        }
+    }
+}
+
+function sendSitesAndMethods(sites_active,methods_active){
+    PORT.postMessage({
+        msgType: 'setContentMethods'
+        , sites_active: sites_active
+        , methods_active: methods_active
+    });
+}
+
 function showSelected(source){
-    var list = document.getElementById('form_sites');
-    var selected = source + "<br/>";
-    var count = 0;
-    for(var ii=0;ii<list.length;++ii){
-        var option = list[ii];
+    const list = document.getElementById('form_sites');
+    let selected = source + "<br/>";
+    let count = 0;
+    for(const option of list){
         if (option.selected){
             selected += count==0 ? option.value : ", "+option.value;
             ++count;
@@ -69,21 +144,37 @@ function showSelected(source){
 }
 
 function toggleDisplayLog() {
-    var x = document.getElementById("events");
-    if (x.style.display === "none") {
-        x.style.display = "block";
+    const evnts = document.getElementById("events");
+    if (evnts.style.display === "none") {
+        evnts.style.display = "block";
     } else {
-        x.style.display = "none";
+        evnts.style.display = "none";
     }
+}
+
+function copyLogToClipboard(){
+    const textElem = document.createElement("textarea");
+    textElem.value = JSON.stringify(EVENTS,null,2);
+    document.body.appendChild(textElem);
+    textElem.focus();
+    textElem.select();
+    const successful = document.execCommand('copy');
+    document.getElementById("clipboard_notice").innerHTML = "Log copied "+new Date().toISOString();
+    document.body.removeChild(textElem);
+
+    // This API is not yet implemented in Firefox as of version 59.0
+    // Clipboard.writeText(JSON.stringify(EVENTS,null,2)).then(()=>{
+    //     document.getElementById("clipboard_notice").innerHTML = "copied"+new Date().toISOString();
+    // });
 }
 
 function saveLogToFile(){
     document.getElementById("savelog_notice").innerHTML = "Log saved "+new Date().toISOString();
 
-    var blob = new Blob([JSON.stringify(EVENTS)], {type: 'text/plain'});
-    var objectURL = URL.createObjectURL(blob);
+    const blob = new Blob([JSON.stringify(EVENTS,null,2)], {type: 'application/json'});
+    const objectURL = URL.createObjectURL(blob);
 
-    var downloading = browser.downloads.download({
+    const downloading = browser.downloads.download({
         url: objectURL
         , filename: 'events.txt'
         , conflictAction: 'overwrite'
@@ -95,17 +186,17 @@ function saveLogToFile(){
      * however, revoking actually disables the file in the download manager
      * so ... don't revoke
      **********************************************************************
-     * var revokeOption1 = (id)=>{
+     * const revokeOption1 = (id)=>{
      *     URL.revokeObjectURL(objectURL);
      *     console.log(`revoke() ${objectURL}`);
      * }
      *
-     * var revokeOption2 = (id)=>{
+     * const revokeOption2 = (id)=>{
      *     console.log(`started download with id ${id}`);
      *     browser.downloads.search({id:id}).then(
      *         (downloadItems)=>{
-     *             for(var ii=0; ii<downloadItems.length; ++ii){
-     *                 var dlItem = downloadItems[ii];
+     *             for(let ii=0; ii<downloadItems.length; ++ii){
+     *                 const dlItem = downloadItems[ii];
      *                 URL.revokeObjectURL(dlItem.url);
      *                 console.log(`revoke() ${dlItem.url}`);
      *             }
@@ -118,9 +209,42 @@ function saveLogToFile(){
      */
 }
 
-/**********************************************************************
+function initForm(set,form_name) {
+    const options = document.getElementById(form_name).options;
+
+    // clear previous form
+    for (let o of options){
+        o = null;
+    }
+    options.length = 0;
+
+    // add options to form
+    for (const v of set){
+        options[options.length] = new Option(v,v);
+    }
+}
+
+function formatForm(set,form_name) {
+    for(const option of document.getElementById(form_name)){
+        if (set.has(option.value)){
+            option.style.color            = "rgb(0, 0, 0, 1.0)";
+            option.style.backgroundColor  = "rgb(0, 255, 0, 0.1)";
+        } else {
+            option.style.color            = "rgb(0, 0, 0, 0.5)";
+            option.style.backgroundColor  = "rgb(255, 0, 0, 0.1)";
+        }
+    }
+}
+
+function clearArray(a){
+    while(a.length > 0){
+        a.pop();
+    }
+}
+
+/*****************************************
  * Do anything when download is finished?
- **********************************************************************
+ *****************************************
  * browser.downloads.onChanged.addListener(
  *     (delta)=>{
  *       if (delta.state && delta.state.current === "complete") {
@@ -131,31 +255,15 @@ function saveLogToFile(){
  */
 
 
-/////////////////////////////////////////
-// Run
-/////////////////////////////////////////
+/***************************
+ * Run
+ ***************************/
 
 updateEventsHeader();
 
-for(var ii=0;ii<SITES.length;++ii){
-    var site = SITES[ii];
-    var list = document.getElementById('form_sites');
-    var options = list.options;
-    options[options.length] = new Option(site,site);
-}
+initForm(SITES,'form_sites');
+initForm(METHODS,'form_events');
+formatForm(SITES_ACTIVE,'form_sites');
+formatForm(METHODS_ACTIVE,'form_events');
 
-for(var ii=0;ii<LISTENERS.length;++ii){
-    var evnt = LISTENERS[ii];
-    var list = document.getElementById('form_events');
-    var options = list.options;
-    options[options.length] = new Option(evnt,evnt);
-}
-
-{
-    var list = document.getElementById('form_events');
-    for(var ii=0;ii<list.length;++ii){
-        list.options[ii].style.backgroundColor  = "rgb(0, 0, 255, 0.2)";
-        list.options[ii].style.color            = "rgb(0, 0,   0, 0.5)";
-    }
-}
-
+sendSitesAndMethods(SITES_ACTIVE,METHODS_ACTIVE);

@@ -1,33 +1,168 @@
 
-var PORT = browser.runtime.connect({name:"content"});
+/***************************
+ * Globals
+ ***************************/
+"use strict";
 
-function notifyOfEvent(str) {
-    var url = window.location.href;
-    var t   = new Date();
+const PORT              = browser.runtime.connect({name:"content"});
+const METHODS           = Object.create(null);
+const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
+
+
+/***************************
+ * Functions: Methods implementations
+ ***************************/
+
+for (const evt of EVENT_TARGETS) {
+    METHODS['action_stop_' + evt] = ()=>{
+        window.addEventListener(
+            evt
+            , (evt)=>{evt.stopImmediatePropagation();}
+            , {capture: true}
+        );
+    };
+
+    METHODS['log_event_' + evt] = ()=>{
+        window.addEventListener(
+            evt
+            , ()=>{notifyOfEvent(evt);}
+        );
+    };
+}
+
+METHODS['action_setToForeground'] = ()=>{
+    setToForeground();
+};
+
+METHODS['log_event_visibilitychange_visibilityState'] = ()=>{
+    window.addEventListener(
+        "visibilitychange"
+        , ()=>{
+            const msg = { visibilitychange_visibilityState: document.wrappedJSObject.visibilityState };
+            notifyOfEvent(msg);
+        }
+    );
+};
+
+METHODS['log_event_visibilitychange_allEntries'] = ()=>{
+    window.addEventListener(
+        "visibilitychange"
+        , ()=>{
+            const msg = {visibilitychange_allEntries: Object.entries(document.wrappedJSObject)};
+            notifyOfEvent(msg);
+        }
+    );
+};
+
+METHODS['log_event_visibilitychange_fullscreenElement'] = ()=>{
+    window.addEventListener(
+        "visibilitychange"
+        , ()=>{
+            if (document.fullscreenElement) {
+                const msg = {visibilitychange_fullscreenElements: Object.entries(document.fullscreenElement.wrappedJSObject)};
+                notifyOfEvent(msg);
+            }
+        }
+    );
+};
+
+METHODS['log_interval_pageProperties'] = ()=>{
+    pageProperties();
+    setInterval(pageProperties, 10000);  // clear with clearInterval();
+};
+
+
+/***************************
+ * Functions: General
+ ***************************/
+
+function setToForeground() {
+    Object.defineProperties(
+        document.wrappedJSObject, {
+            hidden:             {value: false}
+            , visibilityState:  {value: 'visible'}
+        }
+    );
+}
+
+function notifyOfEvent(payload) {
+    const url = window.location.href;
+    const t   = new Date();
+
+    // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cyclic_object_value
+    const weakSet           = new WeakSet();
+    const circularChecker   = (key, value) => {
+        if (value != null && typeof value == "object") {
+            if ( weakSet.has(value) ) { return undefined; }
+            else { weakSet.add(value); }
+        }
+
+        return value;
+    };
     
     PORT.postMessage({
-        time: t
-        , url: url
-        , evt: str
+        msgType: 'eventNotification'
+        , body: JSON.stringify({
+                time: t
+                , url: url
+                , evt: payload
+            }
+            , circularChecker
+        )
     });
 }
 
-window.addEventListener(
-    "resize"
-    , ()=>{notifyOfEvent("resize");}
-);
-
-window.addEventListener(
-    "visibilitychange"
-    , ()=>{
-        var str = "visibilitychange.visibilityState=" + document.visibilityState;
-        notifyOfEvent(str);
-
-        // other helpful Object functions are entries(), keys(), values()
-        var wjso = "doc.wjso=" + JSON.stringify(Object.entries(document.wrappedJSObject));
-        notifyOfEvent(wjso);
-
-        var fswjso = "doc.fs.wjso=" + JSON.stringify(Object.entries(document.fullscreenElement.wrappedJSObject));
-        notifyOfEvent(fswjso);
+function pageProperties() {
+    // other helpful Object functions are entries(), keys(), values()
+    const document_properties = {};
+    for (let property in document.wrappedJSObject) {
+        document_properties[property] = document.wrappedJSObject[property];
     }
-);
+    
+    const window_properties = {};
+    for (let property in window.wrappedJSObject) {
+        window_properties[property] = window.wrappedJSObject[property];
+    }
+
+    const all_element_properties = [];
+    for (let element of document.getElementsByTagName("*"))
+    {
+        const element_properties = {};
+        for (let property in element) {
+            element_properties[property] = element[property];
+        }
+        all_element_properties.push(element_properties);
+    }
+
+    const allEntries = {
+        visibilityState:            document.wrappedJSObject.visibilityState
+        , hidden:                   document.wrappedJSObject.hidden
+        , fullscreenEnabled:        document.wrappedJSObject.fullscreenEnabled
+        , height:                   document.wrappedJSObject.height
+        , width:                    document.wrappedJSObject.width
+        , document_properties:      document_properties
+        , window_properties:        window_properties
+        , all_element_properties:   all_element_properties
+    };
+    notifyOfEvent(allEntries);
+}
+
+
+/***************************
+ * Listeners
+ ***************************/
+
+PORT.postMessage({msgType: 'getContentMethods'});
+
+PORT.onMessage.addListener((msg)=>{
+    if( msg.msgType == 'setContentMethods' ){
+        for (const f of msg.methods_active){
+            METHODS[f]();
+        }
+    } else {
+        console.error('unexpected msgType');
+    }
+});
+
+
+
