@@ -8,29 +8,32 @@
  ***************************/
 "use strict";
 
-let   START_TIME        = new Date();
-const PORT              = browser.runtime.connect({name:"log"});
+let METHODS             = new Set();
+let METHODS_ACTIVE      = new Set();
+let SITES               = new Set();
+let SITES_ACTIVE        = new Set();
+let START_TIME          = new Date();
 const EVENTS            = new Array();
-const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
-const METHODS           = (()=>{
-    const a = ['action_setToForeground', 'log_event_visibilitychange_visibilityState'];
-    for (const evt of EVENT_TARGETS){
-        a.push('action_stop_' + evt);
-        a.push('log_event_' + evt);
-    }
-    const s = new Set(a.sort());
-    return s;
-})();
-const SITES             = new Set(["<all_urls>","*://*.youtube.com/*","*://*.accuradio.com/*","*://*.slacker.com/*","*://*.pandora.com/*","*://*.jango.com/*","*://*.8tracks.com/*"]);
-const METHODS_ACTIVE    = new Set(METHODS);
-const SITES_ACTIVE      = (()=>{const s = new Set(SITES); s.delete("<all_urls>"); return s;})()
+const PORT              = browser.runtime.connect({name:"log"});
 
 /***************************
  * Listeners
  ***************************/
 
 PORT.onMessage.addListener((msg)=>{
-    if( msg.msgType == 'eventNotification' ){
+    if (msg.msgType == 'set_sites') {
+        SITES = msg.body;
+        initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
+    } else if (msg.msgType == 'set_methods') {
+        METHODS = msg.body;
+        initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+    } else if (msg.msgType == 'set_sites_active') {
+        SITES_ACTIVE = msg.body;
+        initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
+    } else if (msg.msgType == 'set_methods_active') {
+        METHODS_ACTIVE = msg.body;
+        initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+    } else if ( msg.msgType == 'eventNotification' ){
         const m = JSON.parse(msg.body);
         EVENTS.push(m);
         updateEventsHeader();
@@ -44,15 +47,16 @@ document.getElementById("button_addSite").addEventListener("click", ()=>{
     console.log("click button_addSite");
     const newSite = document.getElementById("textBox_addSite").value;
     SITES.add(newSite);
-    initForm(SITES,'form_sites');
-    formatForm(SITES_ACTIVE,'form_sites');
+    PORT.postMessage({ msgType: 'set_sites' , body: SITES });
+    initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
 });
 
 document.getElementById("button_rmSite").addEventListener("click", ()=>{
     console.log("click button_rmSite");
     rmSelected('form_sites',[SITES,SITES_ACTIVE]);
-    initForm(SITES,'form_sites');
-    formatForm(SITES_ACTIVE,'form_sites');
+    PORT.postMessage({ msgType: 'set_sites' , body: SITES });
+    PORT.postMessage({ msgType: 'set_sites_active' , body: SITES_ACTIVE });
+    initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
 });
 
 document.getElementById("button_displaylog").addEventListener("click", ()=>{
@@ -83,7 +87,8 @@ document.getElementById("button_sites").addEventListener("click", ()=>{
     getSetFromSelectedForm(METHODS_ACTIVE,'form_events');
     formatForm(SITES_ACTIVE,'form_sites');
     formatForm(METHODS_ACTIVE,'form_events');
-    sendSitesAndMethods(SITES_ACTIVE,METHODS_ACTIVE);
+    PORT.postMessage({ msgType: 'set_sites_active' , body: SITES_ACTIVE });
+    PORT.postMessage({ msgType: 'set_methods_active' , body: METHODS_ACTIVE });
     console.log("click button_sites");
     showSelected("click button_sites");
 });
@@ -119,14 +124,6 @@ function rmSelected(form_name,sets){
             }
         }
     }
-}
-
-function sendSitesAndMethods(sites_active,methods_active){
-    PORT.postMessage({
-        msgType: 'setContentMethods'
-        , sites_active: sites_active
-        , methods_active: methods_active
-    });
 }
 
 function showSelected(source){
@@ -209,6 +206,11 @@ function saveLogToFile(){
      */
 }
 
+function initAndFormatForm(set_init,set_format,form_name) {
+    initForm(set_init,form_name);
+    formatForm(set_format,form_name);
+}
+
 function initForm(set,form_name) {
     const options = document.getElementById(form_name).options;
 
@@ -259,11 +261,11 @@ function clearArray(a){
  * Run
  ***************************/
 
+PORT.postMessage({ msgType: 'get_methods' });
+PORT.postMessage({ msgType: 'get_methods_active' });
+PORT.postMessage({ msgType: 'get_sites' });
+PORT.postMessage({ msgType: 'get_sites_active' });
+
 updateEventsHeader();
 
-initForm(SITES,'form_sites');
-initForm(METHODS,'form_events');
-formatForm(SITES_ACTIVE,'form_sites');
-formatForm(METHODS_ACTIVE,'form_events');
 
-sendSitesAndMethods(SITES_ACTIVE,METHODS_ACTIVE);

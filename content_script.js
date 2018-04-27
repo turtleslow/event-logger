@@ -7,7 +7,9 @@
 const PORT              = browser.runtime.connect({name:"content"});
 const METHODS           = Object.create(null);
 const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
+const URL               = window.location.href;
 
+console.log('started content script for ' + URL);
 
 /***************************
  * Functions: Methods implementations
@@ -86,9 +88,6 @@ function setToForeground() {
 }
 
 function notifyOfEvent(payload) {
-    const url = window.location.href;
-    const t   = new Date();
-
     // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Cyclic_object_value
     const weakSet           = new WeakSet();
     const circularChecker   = (key, value) => {
@@ -103,8 +102,8 @@ function notifyOfEvent(payload) {
     PORT.postMessage({
         msgType: 'eventNotification'
         , body: JSON.stringify({
-                time: t
-                , url: url
+                time: new Date()
+                , url: URL
                 , evt: payload
             }
             , circularChecker
@@ -152,10 +151,10 @@ function pageProperties() {
  * Listeners
  ***************************/
 
-PORT.postMessage({msgType: 'getContentMethods'});
+PORT.postMessage({msgType: 'get_methods_active'});
 
 PORT.onMessage.addListener((msg)=>{
-    if( msg.msgType == 'setContentMethods' ){
+    if( msg.msgType == 'set_methods_active' ){
         for (const f of msg.methods_active){
             METHODS[f]();
         }
