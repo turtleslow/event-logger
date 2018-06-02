@@ -6,7 +6,6 @@
 
 const PORT              = browser.runtime.connect({name:"content"});
 const METHODS           = Object.create(null);
-const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
 const URL               = window.location.href;
 
 console.log('started content script for ' + URL);
@@ -14,22 +13,27 @@ console.log('started content script for ' + URL);
 /***************************
  * Functions: Methods implementations
  ***************************/
-
-for (const evt of EVENT_TARGETS) {
-    METHODS['action_stop_' + evt] = ()=>{
-        window.addEventListener(
-            evt
-            , (evt)=>{evt.stopImmediatePropagation();}
-            , {capture: true}
-        );
-    };
-
-    METHODS['log_event_' + evt] = ()=>{
-        window.addEventListener(
-            evt
-            , ()=>{notifyOfEvent(evt);}
-        );
-    };
+function addStandardMethod(evt) {
+    if( (new RegExp('^action_stop_','')).test(evt) ){
+        console.log('adding method: ' + evt);
+        METHODS[evt] = ()=>{
+            window.addEventListener(
+                evt.replace('action_stop_', '')
+                , (x)=>{x.stopImmediatePropagation();}
+                , {capture: true}
+            );
+        };
+    } else if ( (new RegExp('^log_event_','')).test(evt) ) {
+        console.log('adding method: ' + evt);
+        METHODS[evt] = ()=>{
+            window.addEventListener(
+                evt.replace('log_event_', '')
+                , ()=>{notifyOfEvent(evt);}
+            );
+        };
+    } else {
+        console.error('unknown method');
+    }
 }
 
 METHODS['action_setToForeground'] = ()=>{
@@ -156,6 +160,10 @@ PORT.postMessage({msgType: 'get_methods_active'});
 PORT.onMessage.addListener((msg)=>{
     if( msg.msgType == 'set_methods_active' ){
         for (const f of msg.methods_active){
+            if (typeof METHODS[f] === 'undefined') {
+                addStandardMethod(f);
+            }
+
             METHODS[f]();
         }
     } else {

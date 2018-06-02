@@ -9,13 +9,18 @@
         <p id="p_form_sites"></p>
         <input type="text" id="textBox_addSite" value="*://*.abc.com/*" style="color: rgb(0, 0, 0, 0.65)"/>
         <button id="button_addSite" value="optional & unused">Add Site</button>
-        <button id="button_rmSite" value="optional & unused">Remove Selected</button> <br/>
+        <button id="button_rmSite" value="optional & unused">Remove Site</button> <br/>
         <form action = "">
             <select id = "form_sites" multiple = "multiple" size = "10" style="width: 500px"> </select>
         </form> <br/>
+        <input type="text" id="textBox_addEvent" value="resize" style="color: rgb(0, 0, 0, 0.65)"/>
+        <button id="button_addEvent" value="optional & unused">Add Event</button>
+        <button id="button_rmEvent" value="optional & unused">Remove Event</button> <br/>
         <form action = "">
             <select id = "form_events" multiple = "multiple" size = "10" style="width: 500px"> </select>
-        </form> <br/>
+        </form>
+        <font size="1"> <i>Note: an event will not be logged if 'action_stop' is set for the event<br/></i></font>
+        <br/>
         <button id="button_sites" value="optional & unused">Use Selection</button>
         <p id="form_sites_out"></p>
 

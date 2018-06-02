@@ -51,12 +51,30 @@ document.getElementById("button_addSite").addEventListener("click", ()=>{
     initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
 });
 
+document.getElementById("button_addEvent").addEventListener("click", ()=>{
+    console.log("click button_addEvent");
+    const newEvent = document.getElementById("textBox_addEvent").value;
+    METHODS.add('action_stop_' + newEvent);
+    METHODS.add('log_event_'   + newEvent);
+    METHODS = new Set(Array.from(METHODS).sort());
+    PORT.postMessage({ msgType: 'set_methods' , body: METHODS });
+    initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+});
+
 document.getElementById("button_rmSite").addEventListener("click", ()=>{
     console.log("click button_rmSite");
     rmSelected('form_sites',[SITES,SITES_ACTIVE]);
     PORT.postMessage({ msgType: 'set_sites' , body: SITES });
     PORT.postMessage({ msgType: 'set_sites_active' , body: SITES_ACTIVE });
     initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
+});
+
+document.getElementById("button_rmEvent").addEventListener("click", ()=>{
+    console.log("click button_rmEvent");
+    rmSelected('form_events',[METHODS,METHODS_ACTIVE]);
+    PORT.postMessage({ msgType: 'set_methods' , body: METHODS });
+    PORT.postMessage({ msgType: 'set_methods_active' , body: METHODS_ACTIVE });
+    initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
 });
 
 document.getElementById("button_displaylog").addEventListener("click", ()=>{

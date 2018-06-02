@@ -7,7 +7,7 @@
 let PORT_LOG;
 let CONTENT_SCRIPT_REGISTER;
 const PORT_CONTENT      = new Array();
-const EVENT_TARGETS     = ['visibilitychange','resize','pagehide','focusout','blur','unload'];
+const EVENT_TARGETS     = ['visibilitychange','pagehide','focusout','blur','unload','touchstart','touchend','touchmove','touchcancel']; // 'resize' is another option that's currently the default value in the addEvent form
 let METHODS             = (()=>{
     const a = ['action_setToForeground', 'log_event_visibilitychange_visibilityState'];
     for (const evt of EVENT_TARGETS){
@@ -21,6 +21,7 @@ let SITES               = new Set([
     "<all_urls>"
     , "*://*.8tracks.com/*"
     , "*://*.accuradio.com/*"
+    , "*://*.dailymail.co.uk/*"
     , "*://*.jango.com/*"
     , "*://*.pandora.com/*"
     , "*://*.slacker.com/*"
@@ -56,9 +57,13 @@ function connected(port) {
                     msgType: 'set_methods_active'
                     , body: METHODS_ACTIVE
                 });
+            } else if (msg.msgType == 'set_sites') {
+                SITES = msg.body;
             } else if (msg.msgType == 'set_sites_active') {
                 SITES_ACTIVE = msg.body;
                 setContentScript();
+            } else if (msg.msgType == 'set_methods') {
+                METHODS = msg.body;
             } else if (msg.msgType == 'set_methods_active') {
                 METHODS_ACTIVE = msg.body;
                 setContentScript();
@@ -111,9 +116,10 @@ async function setContentScript(){
  * Run
  ***************************/
 
+browser.runtime.onConnect.addListener(connected);
+
 setContentScript();
 
-browser.runtime.onConnect.addListener(connected);
 
 // open options.html
 // const optionsPage = browser.runtime.openOptionsPage();
