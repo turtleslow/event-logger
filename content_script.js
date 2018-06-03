@@ -4,43 +4,22 @@
  ***************************/
 "use strict";
 
-const PORT              = browser.runtime.connect({name:"content"});
-const METHODS           = Object.create(null);
-const URL               = window.location.href;
+const PORT      = browser.runtime.connect({name:"content"});
+const METHODS   = Object.create(null);
+const URL       = window.location.href;
 
 console.log('started content script for ' + URL);
 
 /***************************
  * Functions: Methods implementations
  ***************************/
-function addStandardMethod(evt) {
-    if( (new RegExp('^action_stop_','')).test(evt) ){
-        console.log('adding method: ' + evt);
-        METHODS[evt] = ()=>{
-            window.addEventListener(
-                evt.replace('action_stop_', '')
-                , (x)=>{x.stopImmediatePropagation();}
-                , {capture: true}
-            );
-        };
-    } else if ( (new RegExp('^log_event_','')).test(evt) ) {
-        console.log('adding method: ' + evt);
-        METHODS[evt] = ()=>{
-            window.addEventListener(
-                evt.replace('log_event_', '')
-                , ()=>{notifyOfEvent(evt);}
-            );
-        };
-    } else {
-        console.error('unknown method');
-    }
-}
-
 METHODS['action_setToForeground'] = ()=>{
+    console.log('special method: action_setToForeground');
     setToForeground();
 };
 
 METHODS['log_event_visibilitychange_visibilityState'] = ()=>{
+    console.log('special method: log_event_visibilitychange_visibilityState');
     window.addEventListener(
         "visibilitychange"
         , ()=>{
@@ -155,16 +134,22 @@ function pageProperties() {
  * Listeners
  ***************************/
 
-PORT.postMessage({msgType: 'get_methods_active'});
+PORT.postMessage({msgType: 'get_events_and_methods'});
 
 PORT.onMessage.addListener((msg)=>{
-    if( msg.msgType == 'set_methods_active' ){
-        for (const f of msg.methods_active){
-            if (typeof METHODS[f] === 'undefined') {
-                addStandardMethod(f);
+    if( msg.msgType == 'set_events_and_methods' ){
+        for (const evt in msg.events){
+            if (msg.events[evt] == 1) {
+                window.addEventListener(evt, ()=>{notifyOfEvent(evt);});
+            } else if (msg.events[evt] == 2) {
+                window.addEventListener(evt, (x)=>{x.stopImmediatePropagation();}, {capture: true});
             }
+        }
 
-            METHODS[f]();
+        for (const f in msg.methods) {
+            if (msg.methods[f] == 1) {
+                METHODS[f]();
+            }
         }
     } else {
         console.error('unexpected msgType');

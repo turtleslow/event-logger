@@ -8,12 +8,11 @@
  ***************************/
 "use strict";
 
-let METHODS             = new Set();
-let METHODS_ACTIVE      = new Set();
-let SITES               = new Set();
-let SITES_ACTIVE        = new Set();
+let SITES;
+let EVENTS;
+let SPECIAL_METHODS;
 let START_TIME          = new Date();
-const EVENTS            = new Array();
+const LOG               = new Array();
 const PORT              = browser.runtime.connect({name:"log"});
 
 /***************************
@@ -23,19 +22,16 @@ const PORT              = browser.runtime.connect({name:"log"});
 PORT.onMessage.addListener((msg)=>{
     if (msg.msgType == 'set_sites') {
         SITES = msg.body;
-        initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
-    } else if (msg.msgType == 'set_methods') {
-        METHODS = msg.body;
-        initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
-    } else if (msg.msgType == 'set_sites_active') {
-        SITES_ACTIVE = msg.body;
-        initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
-    } else if (msg.msgType == 'set_methods_active') {
-        METHODS_ACTIVE = msg.body;
-        initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+        initAndFormatForm(SITES,'form_sites');
+    } else if (msg.msgType == 'set_events') {
+        EVENTS = msg.body;
+        initAndFormatForm(EVENTS,'form_events');
+    } else if (msg.msgType == 'set_special_methods') {
+        SPECIAL_METHODS = msg.body;
+        initAndFormatForm(SPECIAL_METHODS,'form_special_methods');
     } else if ( msg.msgType == 'eventNotification' ){
         const m = JSON.parse(msg.body);
-        EVENTS.push(m);
+        LOG.push(m);
         updateEventsHeader();
         document.getElementById("events").innerHTML += new Date().toISOString() + ": " + JSON.stringify(m,null,2) + "<br/>";
     } else {
@@ -46,35 +42,31 @@ PORT.onMessage.addListener((msg)=>{
 document.getElementById("button_addSite").addEventListener("click", ()=>{
     console.log("click button_addSite");
     const newSite = document.getElementById("textBox_addSite").value;
-    SITES.add(newSite);
+    SITES[newSite] = 0;
     PORT.postMessage({ msgType: 'set_sites' , body: SITES });
-    initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
+    initAndFormatForm(SITES,'form_sites');
 });
 
 document.getElementById("button_addEvent").addEventListener("click", ()=>{
     console.log("click button_addEvent");
     const newEvent = document.getElementById("textBox_addEvent").value;
-    METHODS.add('action_stop_' + newEvent);
-    METHODS.add('log_event_'   + newEvent);
-    METHODS = new Set(Array.from(METHODS).sort());
-    PORT.postMessage({ msgType: 'set_methods' , body: METHODS });
-    initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+    EVENTS[newEvent] = 0;
+    PORT.postMessage({ msgType: 'set_events' , body: EVENTS });
+    initAndFormatForm(EVENTS,'form_events');
 });
 
 document.getElementById("button_rmSite").addEventListener("click", ()=>{
     console.log("click button_rmSite");
-    rmSelected('form_sites',[SITES,SITES_ACTIVE]);
+    rmSelected('form_sites',SITES);
     PORT.postMessage({ msgType: 'set_sites' , body: SITES });
-    PORT.postMessage({ msgType: 'set_sites_active' , body: SITES_ACTIVE });
-    initAndFormatForm(SITES,SITES_ACTIVE,'form_sites');
+    initAndFormatForm(SITES,'form_sites');
 });
 
 document.getElementById("button_rmEvent").addEventListener("click", ()=>{
     console.log("click button_rmEvent");
-    rmSelected('form_events',[METHODS,METHODS_ACTIVE]);
-    PORT.postMessage({ msgType: 'set_methods' , body: METHODS });
-    PORT.postMessage({ msgType: 'set_methods_active' , body: METHODS_ACTIVE });
-    initAndFormatForm(METHODS,METHODS_ACTIVE,'form_events');
+    rmSelected('form_events',EVENTS);
+    PORT.postMessage({ msgType: 'set_events' , body: EVENTS });
+    initAndFormatForm(EVENTS,'form_events');
 });
 
 document.getElementById("button_displaylog").addEventListener("click", ()=>{
@@ -94,22 +86,21 @@ document.getElementById("button_savelog").addEventListener("click", ()=>{
 
 document.getElementById("button_clearlog").addEventListener("click", ()=>{
     console.log("click button_clearlog");
-    clearArray(EVENTS);
+    clearArray(LOG);
     START_TIME = new Date();
     updateEventsHeader();
     document.getElementById("events").innerHTML = "";
 });
 
-document.getElementById("button_sites").addEventListener("click", ()=>{
-    getSetFromSelectedForm(SITES_ACTIVE,'form_sites');
-    getSetFromSelectedForm(METHODS_ACTIVE,'form_events');
-    formatForm(SITES_ACTIVE,'form_sites');
-    formatForm(METHODS_ACTIVE,'form_events');
-    PORT.postMessage({ msgType: 'set_sites_active' , body: SITES_ACTIVE });
-    PORT.postMessage({ msgType: 'set_methods_active' , body: METHODS_ACTIVE });
-    console.log("click button_sites");
-    showSelected("click button_sites");
-});
+document.getElementById("set_site_off"           ).addEventListener("click", ()=>{setActions('form_sites'          ,SITES          ,0,'set_sites'          );});
+document.getElementById("set_site_on"            ).addEventListener("click", ()=>{setActions('form_sites'          ,SITES          ,1,'set_sites'          );});
+
+document.getElementById("set_event_clear"        ).addEventListener("click", ()=>{setActions('form_events'         ,EVENTS         ,0,'set_events'         );});
+document.getElementById("set_event_log"          ).addEventListener("click", ()=>{setActions('form_events'         ,EVENTS         ,1,'set_events'         );});
+document.getElementById("set_event_block"        ).addEventListener("click", ()=>{setActions('form_events'         ,EVENTS         ,2,'set_events'         );});
+
+document.getElementById("set_special_methods_off").addEventListener("click", ()=>{setActions('form_special_methods',SPECIAL_METHODS,0,'set_special_methods');});
+document.getElementById("set_special_methods_on" ).addEventListener("click", ()=>{setActions('form_special_methods',SPECIAL_METHODS,1,'set_special_methods');});
 
 document.getElementById("form_sites").addEventListener("input", ()=>{
     console.log("input form_sites");
@@ -121,25 +112,32 @@ document.getElementById("form_sites").addEventListener("input", ()=>{
  * Functions
  ***************************/
 
-function updateEventsHeader(){
-    document.getElementById("events_header").innerHTML = EVENTS.length + " events since " + START_TIME.toISOString();
+function setActions(form_name,data_object,new_value,msgType){
+    getSetFromSelectedForm(data_object,form_name,new_value);
+    formatForm(data_object,form_name);
+    PORT.postMessage({ msgType: msgType, body: data_object });
+    console.log("setAction: (" + form_name + ',' +  new_value + ")");
+    showSelected("click button");
 }
 
-function getSetFromSelectedForm(set,form_name){
-    set.clear();
+function updateEventsHeader(){
+    document.getElementById("events_header").innerHTML = LOG.length + " events since " + START_TIME.toISOString();
+}
+
+function getSetFromSelectedForm(data_object,form_name,new_value){
+    // Object.keys(data_object).forEach((k)=>{ delete data_object[k]; });
     for(const option of document.getElementById(form_name)){
         if (option.selected){
-            set.add(option.value);
+            option.value                = new_value;
+            data_object[option.text]    = new_value;
         }
     }
 }
 
-function rmSelected(form_name,sets){
+function rmSelected(form_name,data_object){
     for(let option of document.getElementById(form_name)){
         if (option.selected){
-            for(const s of sets){
-                s.delete(option.value);
-            }
+            delete data_object[option.text];
         }
     }
 }
@@ -150,7 +148,7 @@ function showSelected(source){
     let count = 0;
     for(const option of list){
         if (option.selected){
-            selected += count==0 ? option.value : ", "+option.value;
+            selected += count==0 ? option.text : ", "+option.text;
             ++count;
         }
     }
@@ -169,7 +167,7 @@ function toggleDisplayLog() {
 
 function copyLogToClipboard(){
     const textElem = document.createElement("textarea");
-    textElem.value = JSON.stringify(EVENTS,null,2);
+    textElem.value = JSON.stringify(LOG,null,2);
     document.body.appendChild(textElem);
     textElem.focus();
     textElem.select();
@@ -178,7 +176,7 @@ function copyLogToClipboard(){
     document.body.removeChild(textElem);
 
     // This API is not yet implemented in Firefox as of version 59.0
-    // Clipboard.writeText(JSON.stringify(EVENTS,null,2)).then(()=>{
+    // Clipboard.writeText(JSON.stringify(LOG,null,2)).then(()=>{
     //     document.getElementById("clipboard_notice").innerHTML = "copied"+new Date().toISOString();
     // });
 }
@@ -186,7 +184,7 @@ function copyLogToClipboard(){
 function saveLogToFile(){
     document.getElementById("savelog_notice").innerHTML = "Log saved "+new Date().toISOString();
 
-    const blob = new Blob([JSON.stringify(EVENTS,null,2)], {type: 'application/json'});
+    const blob = new Blob([JSON.stringify(LOG,null,2)], {type: 'application/json'});
     const objectURL = URL.createObjectURL(blob);
 
     const downloading = browser.downloads.download({
@@ -224,12 +222,12 @@ function saveLogToFile(){
      */
 }
 
-function initAndFormatForm(set_init,set_format,form_name) {
-    initForm(set_init,form_name);
-    formatForm(set_format,form_name);
+function initAndFormatForm(data_object,form_name) {
+    initForm(data_object,form_name);
+    formatForm(data_object,form_name);
 }
 
-function initForm(set,form_name) {
+function initForm(data_object,form_name) {
     const options = document.getElementById(form_name).options;
 
     // clear previous form
@@ -239,19 +237,26 @@ function initForm(set,form_name) {
     options.length = 0;
 
     // add options to form
-    for (const v of set){
-        options[options.length] = new Option(v,v);
+    for (const kv of Object.entries(data_object).sort()){
+        if( data_object.hasOwnProperty(kv[0]) ) {
+            options[options.length] = new Option(kv[0],kv[1]);
+        }
     }
 }
 
-function formatForm(set,form_name) {
+function formatForm(data_object,form_name) {
     for(const option of document.getElementById(form_name)){
-        if (set.has(option.value)){
+        if (option.value == 0){
+            option.style.color            = "rgb(0, 0, 0, 0.5)";
+            option.style.backgroundColor  = "rgb(255, 255, 255, 0.1)";
+        } else if (option.value == 1){
             option.style.color            = "rgb(0, 0, 0, 1.0)";
             option.style.backgroundColor  = "rgb(0, 255, 0, 0.1)";
-        } else {
-            option.style.color            = "rgb(0, 0, 0, 0.5)";
+        } else if (option.value == 2){
+            option.style.color            = "rgb(0, 0, 0, 1.0)";
             option.style.backgroundColor  = "rgb(255, 0, 0, 0.1)";
+        } else {
+            console.error('unexpected Option.value: ' + option.value);
         }
     }
 }
@@ -279,10 +284,9 @@ function clearArray(a){
  * Run
  ***************************/
 
-PORT.postMessage({ msgType: 'get_methods' });
-PORT.postMessage({ msgType: 'get_methods_active' });
 PORT.postMessage({ msgType: 'get_sites' });
-PORT.postMessage({ msgType: 'get_sites_active' });
+PORT.postMessage({ msgType: 'get_events' });
+PORT.postMessage({ msgType: 'get_special_methods' });
 
 updateEventsHeader();
 
