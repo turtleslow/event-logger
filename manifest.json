@@ -1,7 +1,7 @@
 {
     "manifest_version": 2
     , "name": "event-logger"
-    , "version": "0.1"
+    , "version": "0.1.1"
     , "description": "log events while browsing"
     , "applications": {
         "gecko": {
@@ -13,14 +13,17 @@
         "48": "icons/border-48.png"
     }
     , "permissions": [
-        "downloads"
-        , "<all_urls>"
+        "<all_urls>"
+        , "downloads"
+        , "history"
+        , "storage"
+        , "tabs"
     ]
     , "options_ui": {
-        "page": "options.html"
+        "page": "options_launcher.html"
         , "browser_style": true
     }
     , "background": {
-        "scripts": ["background_script.js"]
+        "page": "background_script.html"
     }
 }

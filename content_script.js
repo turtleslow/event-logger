@@ -1,18 +1,81 @@
 
+'use strict';
+
 /***************************
  * Globals
  ***************************/
-"use strict";
 
 const PORT      = browser.runtime.connect({name:"content"});
 const METHODS   = Object.create(null);
 const URL       = window.location.href;
 
-console.log('started content script for ' + URL);
+// importing modules in a content script gives sites access to the module (security question)
+// and is convoluted anyway; so just get settings from background script via message passing; see:
+// https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/web_accessible_resources
+// https://stackoverflow.com/questions/48104433/how-to-import-es6-modules-in-content-script-for-chrome-extension
+
+/***************************
+ * Listeners
+ ***************************/
+
+PORT.onMessage.addListener((msg)=>{
+    if( msg.msgType == 'settings' ){
+        applySettings(msg.settings);
+    } else {
+        console.error('unexpected msgType');
+    }
+});
+
+
+/***************************
+ * Run
+ ***************************/
+
+console.log(`content script for SITE_MATCH_PATTERN: ${SITE_MATCH_PATTERN} at: ${URL}`);
+
+PORT.postMessage({
+    msgType: 'getSettings'
+    , matchPattern: SITE_MATCH_PATTERN
+});
+
+
+/***************************
+ * Functions: General
+ ***************************/
+// see:
+// https://stackoverflow.com/questions/3937000/chrome-extension-accessing-localstorage-in-content-script#3938013
+// https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/sendMessage
+// https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_a_synchronous_response
+// https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/tabs/sendMessage
+
+function applySettings(settings){
+    console.log(SITE_MATCH_PATTERN, ' applySettings(): ', settings);
+
+    const events = settings.get('events');
+    for (const s_key of events.keys()){
+        if (events.get(s_key) == 1) {
+            window.addEventListener(s_key, (x)=>{x.stopImmediatePropagation();}, {capture: true});
+            console.log(`events on ${s_key} = ${events.get(s_key)}`);
+        } else if (events.get(s_key) == 2) {
+            window.addEventListener(s_key, ()=>{notifyOfEvent(s_key);});
+            console.log(`events log ${s_key} = ${events.get(s_key)}`);
+        }
+    }
+
+    const special_methods = settings.get('special_methods');
+    for (const s_key of special_methods.keys()){
+        if (special_methods.get(s_key) == 1) {
+            console.log(`special_methods on ${s_key} = ${special_methods.get(s_key)}`);
+            METHODS[s_key]();
+        }
+    }
+}
+
 
 /***************************
  * Functions: Methods implementations
  ***************************/
+
 METHODS['action_setToForeground'] = ()=>{
     console.log('special method: action_setToForeground');
     setToForeground();
@@ -129,32 +192,5 @@ function pageProperties() {
     notifyOfEvent(allEntries);
 }
 
-
-/***************************
- * Listeners
- ***************************/
-
-PORT.postMessage({msgType: 'get_events_and_methods'});
-
-PORT.onMessage.addListener((msg)=>{
-    if( msg.msgType == 'set_events_and_methods' ){
-        for (const evt in msg.events){
-            if (msg.events[evt] == 1) {
-                window.addEventListener(evt, ()=>{notifyOfEvent(evt);});
-            } else if (msg.events[evt] == 2) {
-                window.addEventListener(evt, (x)=>{x.stopImmediatePropagation();}, {capture: true});
-            }
-        }
-
-        for (const f in msg.methods) {
-            if (msg.methods[f] == 1) {
-                METHODS[f]();
-            }
-        }
-    } else {
-        console.error('unexpected msgType');
-    }
-});
-
-
+undefined; // return value for browser.tabs.executeScript()
 

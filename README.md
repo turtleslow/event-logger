@@ -26,5 +26,5 @@ https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
 https://stackoverflow.com/questions/8358196/onfullscreenchange-dom-event  
 https://github.com/mozilla/video-bg-play/  
 
-notes:  
+notes:
 - video-bg-play uses window.addEventListener() instead of document.addEventListener() [commit comment:  Make sure events are stopped at the capturing phase, instead of the arget phase]  
