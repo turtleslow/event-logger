@@ -1,6 +1,6 @@
 
 // http://archive.oreilly.com/pub/h/4164
- 
+
 // ==UserScript==
 // @name          Anti-Disabler
 // @namespace	  http://diveintomark.org/projects/greasemonkey/

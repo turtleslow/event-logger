@@ -19,8 +19,8 @@ const KEYWORDS_JSON = new Map([
 function isa(obj,type) {
     // alternative to:
     // 1: obj instanceof type (does not work for literals e.g. 'abc' instanceof String
-    // 2: Object.getPrototypeOf(obj).constructor === type;
-    return obj.constructor === type;
+    // 2: obj.constructor === type (does not work with numbers e.g. 2.constructor)
+    return Object.getPrototypeOf(obj).constructor === type;;
 }
 
 function replacer(k,v) {
@@ -104,23 +104,26 @@ export function defaultSettings() {
     // 1 = block
     // 2 = log
     const events_visibility = new Set([
-        'visibilitychange'
-        , 'pagehide'
+        'blur'
         , 'focusout'
+        , 'pagehide'
         , 'resize'
-        , 'blur'
+        , 'visibilitychange'
     ]);
 
     const events_touch = new Set([
-        'touchstart'
+        'touchcancel'
         , 'touchend'
         , 'touchmove'
-        , 'touchcancel'
+        , 'touchstart'
     ]);
 
     const events_other = new Set([
-        'unload'
+        'DOMContentLoaded'
         , 'beforeunload'
+        , 'onreadystatechange'
+        , 'scroll'
+        , 'unload'
     ]);
 
     const events_all = new Set([...events_visibility, ...events_touch, ...events_other].sort());
@@ -133,7 +136,11 @@ export function defaultSettings() {
         , 'log_event_visibilitychange_visibilityState'
     ]);
 
-    const special_methods_all = new Set([...special_methods_visibility].sort());
+    const special_methods_other = new Set([
+        'log_interval_pageProperties'
+    ]);
+
+    const special_methods_all = new Set([...special_methods_visibility, ...special_methods_other].sort());
     settings['special_methods'] = special_methods_all;
 
     for (const s of sites_visibility){

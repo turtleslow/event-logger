@@ -7,10 +7,6 @@ import * as settings from './modules/settings.js'
 // https://stackoverflow.com/questions/31048215/how-to-create-txt-file-using-javascript-html5
 // http://jsbin.com/bonuta/22/edit?html,js,output
 // https://www.w3schools.com/howto/howto_js_filter_lists.asp
-//
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO:
-// - remove try {} catch () {} blocks
-// - remove console.log() messages
 
 console.log('running options.js');
 
@@ -124,7 +120,7 @@ document.getElementById("button_addSite").addEventListener("click", ()=>{
     }
 
     SETTINGS['sites'].set(newSite, map);
-    settings.save({'sites' : SETTINGS['sites']} );
+    settings.save({'sites' : SETTINGS['sites']} ).then(settings.load).then(console.log);
     run();
 });
 

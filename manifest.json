@@ -15,15 +15,27 @@
     , "permissions": [
         "<all_urls>"
         , "downloads"
-        , "history"
+        , "notifications"
         , "storage"
         , "tabs"
+        , "webNavigation"
+        // , "history" // not implemented for mobile
     ]
+    , "background": {
+        "page": "background_script.html"
+    }
     , "options_ui": {
         "page": "options_launcher.html"
         , "browser_style": true
     }
-    , "background": {
-        "page": "background_script.html"
+    , "page_action": {
+        "browser_style": true
+        , "default_icon": {
+            "19": "icons/border-19.png"
+            , "38": "icons/border-38.png"
+        }
+        , "default_title": "event-logger"
+        , "default_popup": "page_action.html"
+        // , "browser_style": true // not implemented for mobile
     }
 }

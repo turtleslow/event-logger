@@ -1,0 +1,68 @@
+
+body {
+    background-color: rgba(255, 255, 255, 1.0);
+}
+
+button, li {
+    margin: 0;
+    cursor: pointer;
+    list-style: none;
+    padding: 4px 15px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    background-color: rgba(222, 222, 222, 1.0);
+}
+
+.bg_white {
+    background-color: rgba(255, 255, 255, 1.0);
+}
+
+.bg_green {
+    background-color: rgba(222, 255, 222, 1.0);
+}
+
+.bg_red {
+    background-color: rgba(255, 222, 222, 1.0);
+}
+
+.bg_yellow {
+    background-color: rgba(255, 255, 222, 1.0);
+}
+
+input {
+    margin: 0;
+    color: rgb(0, 0, 0, 0.65);
+    padding: 4px 5px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+#page_acction_textBox_addEvent {
+    float: left; /* removes any margin between text box and button */
+    width: 24ch;
+}
+
+select[multiple] {
+    width: 500px;
+    /* height is best set via 'size' attribute in each form;
+     * 'size' cannot be set from css; the alternative is
+     * someting like 'height: 10rem;' but this doesn't align
+     * nicely with the size of the form elements
+     */
+}
+
+menu {
+    margin: 0em 0em;
+    padding: 0;
+}
+
+/* modify previously set style of 'li' using 'id' attribute 'menu_button_event' */
+li#menu_button_event {
+    width: 32ch;
+    padding: 4px 5px;
+}
+
