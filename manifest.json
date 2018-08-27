@@ -8,7 +8,6 @@
            "id": "event-logger@example.com"
         }
     }
-
     , "icons": {
         "48": "icons/border-48.png"
     }
@@ -19,7 +18,6 @@
         , "storage"
         , "tabs"
         , "webNavigation"
-        // , "history" // not implemented for mobile
     ]
     , "background": {
         "page": "background_script.html"
@@ -29,13 +27,11 @@
         , "browser_style": true
     }
     , "page_action": {
-        "browser_style": true
-        , "default_icon": {
+        "default_icon": {
             "19": "icons/border-19.png"
             , "38": "icons/border-38.png"
         }
         , "default_title": "event-logger"
         , "default_popup": "page_action.html"
-        // , "browser_style": true // not implemented for mobile
     }
 }

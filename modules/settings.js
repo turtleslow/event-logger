@@ -133,11 +133,11 @@ export function defaultSettings() {
     // 1 = on
     const special_methods_visibility = new Set([
         'action_setToForeground'
-        , 'log_event_visibilitychange_visibilityState'
     ]);
 
     const special_methods_other = new Set([
-        'log_interval_pageProperties'
+        'log_event_visibilitychange_visibilityState'
+        , 'log_interval_pageProperties'
     ]);
 
     const special_methods_all = new Set([...special_methods_visibility, ...special_methods_other].sort());

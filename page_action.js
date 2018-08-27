@@ -4,19 +4,20 @@
 import * as settings from './modules/settings.js'
 
 const PORT = browser.runtime.connect({name:'page_action'});
+const ACTIVE_TAB = browser.tabs.query({
+    active: true
+    , currentWindow: true
+});
 
 PORT.onMessage.addListener((msg)=>{
     if( msg.msgType == 'matchPattern' ){
         applySettings(msg.matchPattern);
     } else {
-        console.error('unexpected msgType');
+        console.error('unexpected msg.msgType', msg);
     }
 });
 
-browser.tabs.query({
-    active: true
-    , currentWindow: true
-}).then((tabs)=>{
+ACTIVE_TAB.then((tabs)=>{
     PORT.postMessage({
         msgType: 'getMatchPattern'
         , tabId: tabs[0].id
@@ -52,8 +53,30 @@ function applySettings(pattern) {
         li.addEventListener('click', ()=>{
             if (event_map_value===1) {
                 event_map.set(key,0);
+                ACTIVE_TAB.then((tabs)=>{
+                    browser.tabs.sendMessage(
+                        tabs[0].id
+                        , {
+                            msgType: 'page_action_listener_change'
+                            , change: 'rm'
+                            , evt: key
+                            , tabId: tabs[0].id
+                        }
+                    );
+                });
             } else {
                 event_map.set(key,1);
+                ACTIVE_TAB.then((tabs)=>{
+                    browser.tabs.sendMessage(
+                        tabs[0].id
+                        , {
+                            msgType: 'page_action_listener_change'
+                            , change: 'add'
+                            , evt: key
+                            , tabId: tabs[0].id
+                        }
+                    );
+                });
             }
 
             // TODO: these settings don't update in the options page unless the page is reloaded

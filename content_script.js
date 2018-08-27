@@ -14,6 +14,7 @@ if(typeof WAS_RUN !== 'undefined'){
 
     const PORT      = browser.runtime.connect({name:'content'});
     const METHODS   = Object.create(null);
+    const LISTENERS = new Map(); // key = event type, value = an *active* listener
     const URL       = window.location.href;
 
     startMutationObserver();
@@ -27,14 +28,27 @@ if(typeof WAS_RUN !== 'undefined'){
      * Listeners
      ***************************/
 
-    PORT.onMessage.addListener((msg)=>{
-        if( msg.msgType == 'settings' ){
+    PORT.onMessage.addListener( (msg)=>{
+        if (msg.msgType == 'settings') {
             applySettings(msg.settings);
         } else {
-            console.error('unexpected msgType');
+            console.error('unexpected msg.msgType', msg);
         }
     });
 
+    browser.runtime.onMessage.addListener( (msg, sender, response)=>{
+        if (msg.msgType === 'page_action_listener_change') {
+            if (msg.change === 'add') {
+                addListener(window, msg.evt, (x)=>{x.stopImmediatePropagation();}, {capture: true});
+            } else if (msg.change === 'rm') {
+                rmListener(msg.evt);
+            } else {
+                console.error('unexpected msg.change', msg);
+            }
+        } else {
+            console.error('unexpected msg.msgType', msg);
+        }
+    });
 
     /***************************
      * Run
@@ -64,16 +78,33 @@ if(typeof WAS_RUN !== 'undefined'){
     // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/runtime/onMessage#Sending_a_synchronous_response
     // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/tabs/sendMessage
 
-    function applySettings(settings){
+    function addListener(elem,evt,method,options) {
+        const listener = {elem: elem, evt: evt, method: method, options: options};
+        console.log('add listener: ', listener);
+        rmListener(evt);
+        LISTENERS.set(evt,listener);
+        elem.addEventListener(evt, method, options);
+    }
+
+    function rmListener(evt) {
+        if (LISTENERS.has(evt)) {
+            const listener = LISTENERS.get(evt);
+            LISTENERS.delete(evt);
+            console.log('remove listener: ', listener);
+            listener.elem.removeEventListener(listener.evt, listener.method, listener.options);
+        }
+    }
+
+    function applySettings(settings) {
         console.log(SITE_MATCH_PATTERN, ' applySettings(): ', settings);
 
         const events = settings.get('events');
-        for (const s_key of events.keys()){
+        for (const s_key of events.keys()) {
             if (events.get(s_key) == 1) {
-                window.addEventListener(s_key, (x)=>{x.stopImmediatePropagation();}, {capture: true});
+                addListener(window, s_key, (x)=>{x.stopImmediatePropagation();}, {capture: true});
                 console.log(`events on ${s_key} = ${events.get(s_key)}`);
             } else if (events.get(s_key) == 2) {
-                window.addEventListener(s_key, ()=>{notifyOfEvent(s_key);});
+                addListener(window, s_key, ()=>{notifyOfEvent(s_key);}, {capture: false});
                 console.log(`events log ${s_key} = ${events.get(s_key)}`);
             }
         }

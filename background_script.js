@@ -12,7 +12,7 @@ import * as settings from './modules/settings.js'
 let PORT_LOG;
 let CONTENT_SCRIPT_REGISTER = new Map();
 const TABID_TO_PATTERN      = new Map();
-
+const IS_MOBILE             = new RegExp('Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini','i').test(navigator.userAgent);
 
 /***************************
  * Functions
@@ -25,7 +25,7 @@ function connected(port) {
             if( msg.msgType == 'echo' ){
                 port.postMessage({ msgType : 'echo' });
             } else {
-                console.error('unexpected msgType');
+                console.error('unexpected msg.msgType', msg);
             }
         });
     } else if (port.name === 'content_loader') {
@@ -33,7 +33,7 @@ function connected(port) {
             if( msg.msgType == 'matchPattern'){
                 loadContentScriptToAllFrames(port, msg);
             } else {
-                console.error('unexpected msgType: ', msg.msgType);
+                console.error('unexpected msg.msgType', msg);
             }
         });
     } else if (port.name === 'content'){
@@ -52,53 +52,60 @@ function connected(port) {
                 });
 
                 // show extension button in browser's address bar
-                browser.pageAction.isShown({
-                    tabId: tabId
-                }).then((isShown)=>{
-                    if (isShown){
-                        browser.notifications.create(tabId.toString(), {
-                            'type': 'basic',
-                            'iconUrl': browser.extension.getURL('icons/border-48.png'),
-                            'title': 'event-logger notification:',
-                            'message': `URL matched more than once: ${url}`
-                        });
-                    } else {
-                        browser.pageAction.show(tabId);
+                if (IS_MOBILE) {
+                    browser.pageAction.show(tabId);
+                } else {
+                    // browser.pageAction.isShown() is not yet implemented on mobile
+                    // but notification on mobile are annoying anyway (think text message)
+                    browser.pageAction.isShown({
+                        tabId: tabId
+                    }).then((isShown)=>{
+                        // notifications are quite annoying on mobile (think txt msg)
+                        if (isShown){
+                            browser.notifications.create(tabId.toString(), {
+                                'type': 'basic',
+                                'iconUrl': browser.extension.getURL('icons/border-48.png'),
+                                'title': 'event-logger notification:',
+                                'message': `URL matched more than once: ${url}`
+                            });
+                        } else {
+                            browser.pageAction.show(tabId);
 
-                        browser.notifications.create(tabId.toString(), {
-                            'type': 'basic',
-                            'iconUrl': browser.extension.getURL('icons/border-48.png'),
-                            'title': 'event-logger notification:',
-                            'message': `URL matches ${msg.matchPattern}`
-                        }).then((notificationId)=>{
-                            setTimeout(()=>{
-                                browser.notifications.clear(notificationId);
-                            }, 3000);
-                        });
-                    }
-                });
-            } else if( msg.msgType == 'new_iFrame'){
+                            browser.notifications.create(tabId.toString(), {
+                                'type': 'basic',
+                                'iconUrl': browser.extension.getURL('icons/border-48.png'),
+                                'title': 'event-logger notification:',
+                                'message': `URL matches ${msg.matchPattern}`
+                            }).then((notificationId)=>{
+                                setTimeout(()=>{
+                                    browser.notifications.clear(notificationId);
+                                }, 3000);
+                            });
+                        }
+                    });
+                }
+            } else if( msg.msgType == 'new_iFrame') {
                 loadContentScriptToAllFrames(port, msg);
-            } else if( msg.msgType === 'eventNotification' ){
+            } else if( msg.msgType === 'eventNotification' ) {
                 PORT_LOG && PORT_LOG.postMessage(msg);
             } else {
-                console.error('unexpected msgType: ', msg.msgType);
+                console.error('unexpected msg.msgType', msg);
             }
         });
-    } else if (port.name === 'page_action'){
+    } else if (port.name === 'page_action') {
         port.onMessage.addListener(function(msg) {
-            if( msg.msgType == 'getMatchPattern'){
+            if (msg.msgType == 'getMatchPattern') {
                 const pattern = TABID_TO_PATTERN.get(msg.tabId);
                 port.postMessage({
                     msgType: 'matchPattern'
                     , matchPattern: pattern
                 });
             } else {
-                console.error('unexpected msgType');
+                console.error('unexpected msg.msgType', msg);
             }
         });
     } else {
-        console.error('unexpected port');
+        console.error('unexpected port: ', port);
     }
 }
 
