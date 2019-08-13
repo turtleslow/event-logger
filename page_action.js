@@ -43,16 +43,16 @@ function applySettings(pattern) {
         li.innerHTML = key;
 
         const event_map         = s['sites'].get(pattern).get('events');
-        const event_map_value   = event_map.get(key);
 
         // set values using data-* attribute, see:
         // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset
         li.dataset.key = key;
-        setClass(li,event_map_value);
+        setClass(li,event_map.get(key));
 
         li.addEventListener('click', ()=>{
-            if (event_map_value===1) {
+            if (event_map.get(key)===1) {
                 event_map.set(key,0);
+                setClass(li,0);
                 ACTIVE_TAB.then((tabs)=>{
                     browser.tabs.sendMessage(
                         tabs[0].id
@@ -66,6 +66,7 @@ function applySettings(pattern) {
                 });
             } else {
                 event_map.set(key,1);
+                setClass(li,1);
                 ACTIVE_TAB.then((tabs)=>{
                     browser.tabs.sendMessage(
                         tabs[0].id
@@ -80,7 +81,7 @@ function applySettings(pattern) {
             }
 
             // TODO: these settings don't update in the options page unless the page is reloaded
-            settings.save({'sites' : s['sites']}).then(renderSettings);
+            settings.save({'sites' : s['sites']}); // .then(renderSettings);
         });
 
         menu.appendChild(li);

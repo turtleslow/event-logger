@@ -1,4 +1,6 @@
 
+// a basic basic but useful functionality is:
+// [...document.getElementsByTagName('video')].forEach(x=>x.playbackRate=4);
 
 // 8tracks.com has it's player in window.soundManager.sounds and window.soundManager.soundIDs
 // e.g. in console:

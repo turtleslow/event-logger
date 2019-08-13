@@ -84,9 +84,9 @@ function connected(port) {
                         }
                     });
                 }
-            } else if( msg.msgType == 'new_iFrame') {
+            } else if (msg.msgType == 'new_iFrame') {
                 loadContentScriptToAllFrames(port, msg);
-            } else if( msg.msgType === 'eventNotification' ) {
+            } else if (msg.msgType === 'eventNotification') {
                 PORT_LOG && PORT_LOG.postMessage(msg);
             } else {
                 console.error('unexpected msg.msgType', msg);

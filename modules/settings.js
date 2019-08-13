@@ -100,6 +100,10 @@ export function defaultSettings() {
         , "*://*.example.com/*"
     ];
 
+    const sites_clipboard = [
+        "*://*.hackerrank.com/*"
+    ];
+
     // 0 = inactive
     // 1 = block
     // 2 = log
@@ -118,6 +122,14 @@ export function defaultSettings() {
         , 'touchstart'
     ]);
 
+    const events_clipboard = new Set([
+        'copy'
+        , 'cut'
+        , 'paste'
+        , 'select'
+        , 'contextmenu'
+    ]);
+
     const events_other = new Set([
         'DOMContentLoaded'
         , 'beforeunload'
@@ -126,7 +138,7 @@ export function defaultSettings() {
         , 'unload'
     ]);
 
-    const events_all = new Set([...events_visibility, ...events_touch, ...events_other].sort());
+    const events_all = new Set([...events_visibility, ...events_touch, ...events_clipboard, ...events_other].sort());
     settings['events'] = events_all;
 
     // 0 = off
@@ -143,26 +155,26 @@ export function defaultSettings() {
     const special_methods_all = new Set([...special_methods_visibility, ...special_methods_other].sort());
     settings['special_methods'] = special_methods_all;
 
+    const apply_settings = (sites,events)=>{
+        for (const s of sites){
+            settings_sites.set(s,new Map());
+
+            const evts = new Map();
+            events.forEach((x)=>{ evts.set(x,1) });
+            settings_sites.get(s).set('events', evts);
+
+            settings_sites.get(s).set('special_methods', new Map());
+        }
+    }
+
+    apply_settings(sites_touch     , events_touch);
+    apply_settings(sites_clipboard , events_clipboard);
+    apply_settings(sites_visibility, events_visibility);
+
     for (const s of sites_visibility){
-        settings_sites.set(s,new Map());
-
-        const evts = new Map();
-        events_visibility.forEach((x)=>{ evts.set(x,1) });
-        settings_sites.get(s).set('events', evts);
-
         const special_methods = new Map();
         special_methods_visibility.forEach((x)=>{ special_methods.set(x,1) });
         settings_sites.get(s).set('special_methods',  special_methods);
-    }
-
-    for (const s of sites_touch){
-        settings_sites.set(s,new Map());
-
-        const evts = new Map();
-        events_touch.forEach((x)=>{ evts.set(x,1) });
-        settings_sites.get(s).set('events', evts);
-
-        settings_sites.get(s).set('special_methods', new Map());
     }
 
     console.log('defaultSettings(): ', settings);
