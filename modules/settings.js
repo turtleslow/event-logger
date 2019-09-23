@@ -128,6 +128,9 @@ export function defaultSettings() {
         , 'paste'
         , 'select'
         , 'contextmenu'
+        , 'compositionstart'
+        , 'compositionupdate'
+        , 'compositionend'
     ]);
 
     const events_other = new Set([

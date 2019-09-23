@@ -10,9 +10,9 @@ import * as settings from './modules/settings.js'
  ***************************/
 
 let PORT_LOG;
-let CONTENT_SCRIPT_REGISTER = new Map();
-const TABID_TO_PATTERN      = new Map();
-const IS_MOBILE             = new RegExp('Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini','i').test(navigator.userAgent);
+const CONTENT_SCRIPT_REGISTER   = new Map();
+const TABID_TO_PATTERN          = new Map();
+const IS_MOBILE                 = new RegExp('Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini','i').test(navigator.userAgent);
 
 /***************************
  * Functions
@@ -110,13 +110,24 @@ function connected(port) {
 }
 
 function setContentScripts_all(settings){
+    for (const [key,value] of CONTENT_SCRIPT_REGISTER.entries()) {
+        // apparently the future needs to be consumed to be able to call unregister later
+        value.then( (x) => {
+            // calling `unregister` gives a console log error message that it was
+            // already called ... but we still need it to unregister content scripts
+            // otherwise it is not possible to remove urls from the addon's match pattern
+            x.unregister();
+            CONTENT_SCRIPT_REGISTER.delete(key);
+        })
+    }
+
     [...settings['sites'].keys()].forEach(setContentScript);
 }
 
 async function setContentScript(pattern){
-    // register content script for SITES; if the returned
-    // object is destroyed (e.g. it goes out of scope), then
-    // the content scripts will be unregistered automatically;
+    // register content script for site matching `pattern`; if the
+    // returned object is destroyed (e.g. it goes out of scope),
+    // then the content scripts will be unregistered automatically;
     // the API requires host permission in manifest.json
     // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/contentScripts/register
 
