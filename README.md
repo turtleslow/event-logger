@@ -31,4 +31,5 @@ notes:
 - video-bg-play uses window.addEventListener() instead of document.addEventListener() [commit comment:  Make sure events are stopped at the capturing phase, instead of the arget phase]
 
 \
+[![HitCount](http://hits.dwyl.com/dQm5Uojx/dQm5Uojx.svg)](http://hits.dwyl.com/dQm5Uojx/dQm5Uojx)
 ![Hits](https://hitcounter.pythonanywhere.com/count/tag.svg?url=dQm5Uojx)
